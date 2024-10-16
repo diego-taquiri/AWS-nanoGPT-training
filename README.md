@@ -8,6 +8,10 @@ This repository provides code and setup instructions for training a small GPT-2 
 - Configurable for different GPU architectures (e.g., Tesla T4, A100)
 - Optimized for AWS EC2 instances with GPU support
 
+
+![Training Snapshot](./figures/training-snapshot.png)
+This is a screenshot of VSCode SSH into an AWS EC2 instance while training on a jupyter notebook.
+
 ## Setup and Prerequisites
 
 ### 1. Clone the Repository
