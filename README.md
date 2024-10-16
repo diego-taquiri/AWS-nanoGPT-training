@@ -1,49 +1,65 @@
-# Running nanoGPT on AWS
+# nanoGPT Training on AWS
 
-This guide will walk you through running Karpathy's [nanoGPT](https://github.com/karpathy/nanoGPT) on AWS infrastructure. The steps outlined include selecting suitable AWS instances for data preprocessing, storage, and training while minimizing costs by leveraging different instances at different stages.
+This repository provides code and setup instructions for training a small GPT-2 transformer model using nanoGPT on AWS infrastructure with PyTorch. The setup is optimized for GPUs like the Tesla T4.
 
-## Step 1: Download and Preprocess Data
-For the data download and preprocessing stage, we will use an **Amazon EC2 c5.2xlarge** instance, which offers a good balance of CPU and memory resources at a reasonable cost.
+## Features
 
-**Instance: c5.2xlarge**
-- vCPUs: 8
-- Memory: 16 GB RAM
-- GPU: None
-- **Hourly Cost**: ~$0.34 per hour
+- Small-scale GPT-2 implementation using nanoGPT and PyTorch
+- Configurable for different GPU architectures (e.g., Tesla T4, A100)
+- Optimized for AWS EC2 instances with GPU support
 
-### Why c5.2xlarge?
-This instance provides ample CPU power for data processing without incurring the higher costs of a GPU instance. The lack of a GPU for this step makes sense since preprocessing is CPU-bound, and we can save on the overall budget.
+## Setup and Prerequisites
 
-### Estimated Cost for Data Preprocessing:
-- **Total Hours**: Varies depending on dataset size, but for an estimated 12 hours:
-  - 12 hours * $0.34 = **$4.08**
+### 1. Clone the Repository
 
-## Step 2: Store Data on EBS and Attach to Training Instance
-Once the preprocessing is complete, store the processed data on an **Amazon Elastic Block Store (EBS)** volume. This EBS volume will be attached to the training instance. EBS provides persistent storage that can be easily transferred between instances.
+```bash
+git clone https://github.com/diego-taquiri/aws-nanoGPT-training.git
+cd aws-nanoGPT-training
+```
 
-- **EBS Storage Cost**: ~$0.10 per GB per month
-  - Size depends on your dataset, but for an example of a 100 GB dataset:
-    - **Estimated Monthly Cost**: 100 GB * $0.10 = **$10/month**
+## 2. Install Dependencies
 
-## Step 3: Train Model with GPU Instance
-After preprocessing, attach the EBS volume containing the processed data to a **p4d.24xlarge** instance. This instance provides the GPU power required to train medium-sized GPT models efficiently.
+Ensure Python 3.8 or higher is installed. Install the required packages:
 
-**Instance: p4d.24xlarge**
-- GPUs: 8x NVIDIA A100 40GB
-- vCPUs: 96
-- Memory: 1.1 TB
-- **Hourly Cost**: ~$33.05 per hour
+```bash
+mamba create -n gpt2 python=3.12
+pip install torch numpy transformers datasets tiktoken wandb tqdm
+```
 
-### Why p4d.24xlarge?
-This instance is optimal for training large-scale models like GPT-2 due to its multi-GPU configuration and high-performance networking. The training process is highly GPU-bound, so using the A100 GPUs will significantly reduce training time compared to other instances.
+## 3. AWS Setup
 
-### Training Time and Costs:
-- Based on the nanoGPT repo, training GPT-2 (124M) on OpenWebText can take approximately 4 days (96 hours).
-- **Estimated Training Cost**:
-  - 96 hours * $33.05 = **$3,172.80**
+To run training on AWS:
 
-## Total Estimated Costs:
-1. **Preprocessing (c5.2xlarge)**: ~$4.08
-2. **EBS Storage (100 GB for 1 month)**: ~$10
-3. **Training (p4d.24xlarge for 4 days)**: ~$3,172.80
+- Launch an EC2 instance with a GPU (e.g., `g4dn.xlarge` with Tesla T4 GPU)
+- Use an AWS Deep Learning AMI with PyTorch pre-installed.
 
+## 4. Run the Training Script
+
+After setting up your AWS instance and installing dependencies, run the training script:
+
+```bash
+python data/shakespeare_char/prepare.py
+python train.py config/train_shakespeare_char.py
+```
+## 5. Customizing Model Configuration
+
+You can adjust model hyperparameters in `train.py` or via command-line arguments:
+
+- **Data Type**: Set to `float16` for Tesla T4 compatibility:
+
+  ```python
+  dtype = 'float16'  # Use FP16 as Tesla T4 does not support BFloat16
+
+- **Disable Compilation**: Disable `torch.compile()` for T4 compatibility:
+
+  ```python
+  compile = False  # Disable PyTorch compile for compatibility with T4
+- **Other Hyperparameters**: Adjust `n_layer`, `n_head`, `n_embd`, `learning_rate`, etc., to suit your needs.
+
+## Acknowledgements
+
+- [nanoGPT by Andrej Karpathy](https://github.com/karpathy/nanoGPT)
+
+## License
+
+This project is licensed under the MIT License.
